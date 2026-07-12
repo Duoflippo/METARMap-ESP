@@ -42,7 +42,8 @@ def _vtuple(v):
 
 
 def _sha256(data):
-    """Hex sha256 if a hash lib is present, else None (we fall back to size check)."""
+    """Hex sha256 if a hash lib is available, else None (we then fall back to a
+    size-only check). MUST NOT raise — a hashing hiccup must never brick OTA."""
     try:
         import hashlib
     except ImportError:
@@ -50,9 +51,19 @@ def _sha256(data):
             import adafruit_hashlib as hashlib
         except ImportError:
             return None
-    h = hashlib.sha256()
-    h.update(data)
-    return h.hexdigest()
+    h = None
+    try:
+        h = hashlib.sha256()
+    except AttributeError:
+        try:
+            h = hashlib.new("sha256")   # adafruit_hashlib has no sha256() shortcut
+        except Exception:
+            return None
+    try:
+        h.update(data)
+        return h.hexdigest()
+    except Exception:
+        return None
 
 
 def check_and_update(session, user_agent="METARMap-Updater/2.0"):

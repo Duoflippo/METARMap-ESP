@@ -26,10 +26,14 @@ DEVICE_FILES = [
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("usage: python tools/make_manifest.py <version>   e.g. 2.0.1")
+    args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    if not args:
+        print("usage: python tools/make_manifest.py <version> [--no-sha]   e.g. 2.0.1")
         sys.exit(1)
-    version = sys.argv[1]
+    version = args[0]
+    # --no-sha omits hashes: needed once to recover a device whose on-board
+    # updater can't compute sha256 (it only crashes when the manifest has hashes).
+    no_sha = "--no-sha" in sys.argv
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     files = []
@@ -40,11 +44,10 @@ def main():
             continue
         with open(path, "rb") as f:
             data = f.read()
-        files.append({
-            "path": name,
-            "size": len(data),
-            "sha256": hashlib.sha256(data).hexdigest(),
-        })
+        entry = {"path": name, "size": len(data)}
+        if not no_sha:
+            entry["sha256"] = hashlib.sha256(data).hexdigest()
+        files.append(entry)
 
     manifest = {"version": version, "files": files}
     out = os.path.join(root, "version.json")

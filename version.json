@@ -1,45 +1,37 @@
 {
-  "version": "2.5.3",
+  "version": "2.5.4",
   "files": [
     {
       "path": "boot.py",
-      "size": 2466,
-      "sha256": "6b350227e0a16597830eeeae45c39ec0e0bb284da6713291a2e1de7f0d8f743e"
+      "size": 2466
     },
     {
       "path": "code.py",
-      "size": 6838,
-      "sha256": "46166cb21672cbd48912fab396b56cb8087e56bb776b86173d7ad72ef2ba8a6b"
+      "size": 6838
     },
     {
       "path": "metar_source.py",
-      "size": 10055,
-      "sha256": "94f86a3e54b953e202108272af6a073f82f2649b92461ac5300c0640fee3f6ee"
+      "size": 10055
     },
     {
       "path": "updater.py",
-      "size": 5009,
-      "sha256": "421f8c2eaa4ba2b76d9315b342440467a7673afcee8f8de348d3ae3d83b43b11"
+      "size": 5344
     },
     {
       "path": "render.py",
-      "size": 8043,
-      "sha256": "cf397b83db2dcebfa4505b8cc97d3935ab6d326b836da8c3c4f76cdd084194a7"
+      "size": 8043
     },
     {
       "path": "wifi_setup.py",
-      "size": 8733,
-      "sha256": "e0dd1e6c30403052d2af5c440d80a4ef6b6941b7fb568fbce097762975b50ece"
+      "size": 8733
     },
     {
       "path": "captive_dns.py",
-      "size": 3550,
-      "sha256": "19ce0a675273b11af2d9a53f8c69e507785aced0329dffe4184c2b7aa27b1580"
+      "size": 3550
     },
     {
       "path": "webui.py",
-      "size": 11915,
-      "sha256": "ca0852d4efb4ed78f2e0f526402a759f869de7e6395086c0946bdba8448ac2ca"
+      "size": 11915
     }
   ]
 }
