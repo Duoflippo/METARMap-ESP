@@ -70,9 +70,17 @@ def start_provisioning(config, pixels=None, config_path="config.json"):
     pool = socketpool.SocketPool(wifi.radio)
     server = Server(pool, debug=False)
 
-    @server.route("/", "GET")
-    def _index(request):
+    def _portal(request):
         return Response(request, _form_html(networks), content_type="text/html")
+
+    # Serve the setup page for the root AND for the OS connectivity-probe URLs
+    # (Apple / Android / Windows). Returning the page instead of the expected
+    # probe response is what makes the phone flag a captive portal and auto-open
+    # the sign-in sheet. With wildcard DNS below, these hostnames all resolve here.
+    for path in ("/", "/hotspot-detect.html", "/library/test/success.html",
+                 "/generate_204", "/gen_204", "/connecttest.txt", "/ncsi.txt",
+                 "/redirect", "/success.txt", "/canonical.html"):
+        server.route(path, "GET")(_portal)
 
     @server.route("/save", POST)
     def _save(request):
@@ -86,10 +94,23 @@ def start_provisioning(config, pixels=None, config_path="config.json"):
         return Response(request, _saved_html(ssid), content_type="text/html")
 
     server.start(AP_IP)
+
+    # Wildcard DNS -> makes any hostname resolve to us, triggering the popup.
+    # Best-effort: if it can't start, the manual-IP flow still works.
+    dns = None
+    try:
+        import captive_dns
+        dns = captive_dns.CaptiveDNS(pool, AP_IP)
+        print("wifi_setup: captive DNS active")
+    except Exception as e:
+        print("wifi_setup: captive DNS unavailable (manual IP still works):", e)
+
     print("wifi_setup: open http://%s to configure" % AP_IP)
     while True:
         try:
             server.poll()
+            if dns is not None:
+                dns.poll()
         except Exception as e:
             print("wifi_setup: server error:", e)
         if _state["reset_at"] and time.monotonic() > _state["reset_at"]:

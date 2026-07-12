@@ -1,5 +1,5 @@
 {
-  "version": "2.4.1",
+  "version": "2.5.0",
   "files": [
     {
       "path": "boot.py",
@@ -28,8 +28,13 @@
     },
     {
       "path": "wifi_setup.py",
-      "size": 7002,
-      "sha256": "6a9556a1c7011ca758f89541b4a6ae19b934b54b4a79180c351853ec82d552c4"
+      "size": 8026,
+      "sha256": "f0828b4672d261aa9ec7d7b20f85d6508cb31a90e9b0445d06e60535f63d8d5e"
+    },
+    {
+      "path": "captive_dns.py",
+      "size": 3550,
+      "sha256": "19ce0a675273b11af2d9a53f8c69e507785aced0329dffe4184c2b7aa27b1580"
     },
     {
       "path": "webui.py",
