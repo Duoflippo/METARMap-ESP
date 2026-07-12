@@ -28,7 +28,7 @@ aviationweather.gov API (`/api/data/metar`, JSON).
 | `updater.py` | OTA: fetch manifest → verify → install → reboot |
 | `render.py` | Precedence engine + LED animations |
 | `wifi_setup.py` | First-run WiFi provisioning (AP mode) |
-| `webui.py` | *(TODO)* on-device config web UI |
+| `webui.py` | On-device config web UI (weather toggles, dimming, etc.) |
 | `config.json` | *(device-only, not in git)* user settings + WiFi creds |
 | `version.json` | OTA manifest: current version + file hashes |
 
@@ -51,6 +51,15 @@ Install the current CircuitPython build on the QT Py, then `circup install`:
 3. Pick your WiFi from the scanned list, enter the password, tap Save.
 4. The map reboots and connects. If it ever can't (e.g. you change routers),
    `METARMap-Setup` reappears automatically so you can reconfigure.
+
+## Configuring the map (in a browser)
+
+Once online, the map serves a config page at its own IP (printed to the serial
+console at boot, e.g. `http://192.168.1.42`). From there you can set the airport
+list, toggle each weather effect, tune wind thresholds and brightness/dimming,
+check for updates, reboot, or switch WiFi networks — no computer or re-flash
+needed. Weather and brightness changes apply instantly; airport/LED-count
+changes take effect after a reboot.
 
 ## Cutting a release (OTA)
 

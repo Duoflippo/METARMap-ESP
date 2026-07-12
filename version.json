@@ -1,5 +1,5 @@
 {
-  "version": "2.2.0",
+  "version": "2.3.0",
   "files": [
     {
       "path": "boot.py",
@@ -8,8 +8,8 @@
     },
     {
       "path": "code.py",
-      "size": 4202,
-      "sha256": "e3d673fcb09f479bcb424d344f86fe5e1053b290c77019d88d429e040ced62f3"
+      "size": 5136,
+      "sha256": "ab1b32624192c7cab13c5857bde28780696f35e7ce8c2f69de304efe598944c7"
     },
     {
       "path": "metar_source.py",
@@ -30,6 +30,11 @@
       "path": "wifi_setup.py",
       "size": 7002,
       "sha256": "6a9556a1c7011ca758f89541b4a6ae19b934b54b4a79180c351853ec82d552c4"
+    },
+    {
+      "path": "webui.py",
+      "size": 11590,
+      "sha256": "e6c1726a0876b0794ff36ea981121d37df5924e16be577f8fff04aff967cbb19"
     }
   ]
 }

@@ -1,8 +1,8 @@
 # code.py — main entry point on the QT Py ESP32-S2.
 #
-# Orchestrates the whole map. This is a SKELETON: sections marked TODO are
-# stubs until their module is built (wifi_setup, render, webui). It already
-# wires up the two finished pieces — metar_source (data) and updater (OTA).
+# Orchestrates the whole map: WiFi (or setup portal) -> weather fetch -> LED
+# render -> config web UI -> periodic OTA. Remaining TODO: NTP clock sync
+# (sync_clock) to drive night dimming and the daily update hour.
 #
 # boot.py has already run before this (flash made writable + rollback check).
 
@@ -40,13 +40,16 @@ def connect_wifi(pixels):
     return wifi_setup.ensure_connected(CONFIG, pixels=pixels)
 
 
-def make_session():
+def make_net():
+    # One socket pool shared by the HTTPS client (weather + OTA) and the config
+    # web server, so we don't exhaust sockets.
     import socketpool
     import ssl
     import wifi
     import adafruit_requests
     pool = socketpool.SocketPool(wifi.radio)
-    return adafruit_requests.Session(pool, ssl.create_default_context())
+    session = adafruit_requests.Session(pool, ssl.create_default_context())
+    return pool, session
 
 
 def sync_clock(session):
@@ -74,8 +77,23 @@ def main():
     if not connect_wifi(pixels):
         return   # unreachable: portal reboots the device once WiFi is configured
     pixels.brightness = LED_BRIGHTNESS   # restore after any setup-mode indicator
-    session = make_session()
+    pool, session = make_net()
     sync_clock(session)
+
+    # Config web UI, served alongside the render loop on the map's own IP.
+    ui = None
+    server = None
+    try:
+        import webui
+        from adafruit_httpserver import Server
+        import wifi
+        server = Server(pool, debug=False)
+        ui = webui.ConfigUI(CONFIG, renderer, pixels, session)
+        ui.register(server)
+        server.start(str(wifi.radio.ipv4_address))
+        print("code.py: config UI at http://%s" % wifi.radio.ipv4_address)
+    except Exception as e:
+        print("code.py: config UI unavailable:", e)
 
     # Check for updates on boot (also runs daily in the loop below).
     if AUTO_UPDATE:
@@ -101,6 +119,14 @@ def main():
                 print("code.py: refresh error:", e)
 
         renderer.render_frame(conditions)
+
+        # Serve the config UI without blocking the animation.
+        if server is not None:
+            try:
+                server.poll()
+            except Exception as e:
+                print("code.py: UI poll error:", e)
+            ui.tick()
 
         if AUTO_UPDATE:
             t = time.localtime(now)

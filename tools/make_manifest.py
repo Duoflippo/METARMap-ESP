@@ -20,8 +20,7 @@ DEVICE_FILES = [
     "updater.py",
     "render.py",
     "wifi_setup.py",
-    # Add these as they are built:
-    # "webui.py",
+    "webui.py",
 ]
 
 
