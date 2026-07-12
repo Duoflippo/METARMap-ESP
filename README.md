@@ -40,7 +40,7 @@ Install the current CircuitPython build on the QT Py, then `circup install`:
 - `adafruit_requests`
 - `adafruit_connection_manager`
 - `adafruit_httpserver`
-- `adafruit_ntp` *(for time-based dimming / OTA scheduling, once wired)*
+- `adafruit_ntp` *(clock sync for time-based dimming / OTA scheduling)*
 - `adafruit_hashlib` *(optional — enables SHA-256 verification of OTA downloads)*
 
 ## First-run setup (no computer needed)

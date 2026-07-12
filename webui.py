@@ -20,6 +20,10 @@ DEFAULTS_EXTRA = {
     "dimming_enabled": False,
     "brightHour": 7,
     "dimHour": 19,
+    "offEnabled": False,
+    "offHour": 22,
+    "onHour": 7,
+    "tzOffsetHours": 0,
     "autoUpdate": True,
     "autoUpdateHour": 3,
 }
@@ -52,11 +56,15 @@ SCHEMA = [
     ("Brightness & dimming", [
         ("ledBrightness", "Daytime brightness (0.0-1.0)", "float"),
         ("ledBrightnessDim", "Night brightness (0.0-1.0)", "float"),
-        ("dimming_enabled", "Enable night dimming (needs clock sync)", "bool"),
+        ("dimming_enabled", "Enable night dimming", "bool"),
         ("brightHour", "Bright starts at hour (0-23)", "hour"),
         ("dimHour", "Dim starts at hour (0-23)", "hour"),
+        ("offEnabled", "Turn map fully OFF overnight", "bool"),
+        ("offHour", "Off starts at hour (0-23)", "hour"),
+        ("onHour", "On again at hour (0-23)", "hour"),
     ]),
     ("System", [
+        ("tzOffsetHours", "UTC offset in hours (e.g. -7; no auto-DST)", "float"),
         ("autoUpdate", "Auto-update from GitHub", "bool"),
         ("autoUpdateHour", "Daily update-check hour (0-23)", "hour"),
     ]),

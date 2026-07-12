@@ -1,8 +1,8 @@
 # code.py — main entry point on the QT Py ESP32-S2.
 #
-# Orchestrates the whole map: WiFi (or setup portal) -> weather fetch -> LED
-# render -> config web UI -> periodic OTA. Remaining TODO: NTP clock sync
-# (sync_clock) to drive night dimming and the daily update hour.
+# Orchestrates the whole map: WiFi (or setup portal) -> NTP clock -> weather
+# fetch -> LED render (with time-of-day dimming / off) -> config web UI ->
+# periodic OTA.
 #
 # boot.py has already run before this (flash made writable + rollback check).
 
@@ -52,10 +52,34 @@ def make_net():
     return pool, session
 
 
-def sync_clock(session):
-    # TODO: NTP sync (adafruit_ntp) so time.localtime() is correct for
-    # daytime dimming and the daily OTA schedule.
-    pass
+def sync_clock(pool):
+    # Set the RTC from NTP in UTC, so epoch math (data staleness) stays correct.
+    # Local time for dimming/off is derived separately from tzOffsetHours.
+    try:
+        import adafruit_ntp
+        import rtc
+        ntp = adafruit_ntp.NTP(pool, tz_offset=0, cache_seconds=3600)
+        rtc.RTC().datetime = ntp.datetime
+        print("code.py: clock synced (UTC)")
+        return True
+    except Exception as e:
+        print("code.py: NTP sync failed:", e)
+        return False
+
+
+def local_hour(now):
+    # now is a UTC epoch; shift by the configured offset to get the local hour.
+    tz = CONFIG.get("tzOffsetHours", 0)
+    return time.localtime(int(now + tz * 3600)).tm_hour
+
+
+def _in_window(hour, start, end):
+    # True if `hour` is within [start, end), wrapping past midnight if start > end.
+    if start == end:
+        return False
+    if start < end:
+        return start <= hour < end
+    return hour >= start or hour < end
 
 
 def make_pixels():
@@ -78,7 +102,7 @@ def main():
         return   # unreachable: portal reboots the device once WiFi is configured
     pixels.brightness = LED_BRIGHTNESS   # restore after any setup-mode indicator
     pool, session = make_net()
-    sync_clock(session)
+    sync_clock(pool)
 
     # Config web UI, served alongside the render loop on the map's own IP.
     ui = None
@@ -118,9 +142,23 @@ def main():
             except Exception as e:
                 print("code.py: refresh error:", e)
 
-        renderer.render_frame(conditions)
+        # Time-of-day: a configured "off" window blanks the strip entirely;
+        # otherwise apply day/night dimming, then animate. Values are read live
+        # so UI changes take effect without a reboot.
+        lh = local_hour(now)
+        map_off = (CONFIG.get("offEnabled", False)
+                   and _in_window(lh, CONFIG.get("offHour", 22), CONFIG.get("onHour", 7)))
+        if map_off:
+            pixels.fill((0, 0, 0))
+            pixels.show()
+        else:
+            if CONFIG.get("dimming_enabled", False):
+                daytime = _in_window(lh, CONFIG.get("brightHour", 7), CONFIG.get("dimHour", 19))
+                pixels.brightness = (CONFIG.get("ledBrightness", 0.5) if daytime
+                                     else CONFIG.get("ledBrightnessDim", 0.1))
+            renderer.render_frame(conditions)
 
-        # Serve the config UI without blocking the animation.
+        # Serve the config UI without blocking the animation (even while "off").
         if server is not None:
             try:
                 server.poll()
@@ -128,10 +166,12 @@ def main():
                 print("code.py: UI poll error:", e)
             ui.tick()
 
-        if AUTO_UPDATE:
-            t = time.localtime(now)
-            if t.tm_hour == UPDATE_HOUR and t.tm_yday != last_update_day:
-                last_update_day = t.tm_yday
+        # Daily jobs at the configured local hour: refresh the clock, check OTA.
+        day = time.localtime(now).tm_yday
+        if lh == UPDATE_HOUR and day != last_update_day:
+            last_update_day = day
+            sync_clock(pool)
+            if AUTO_UPDATE:
                 updater.check_and_update(session)
 
         time.sleep(FRAME_INTERVAL)
