@@ -1,4 +1,4 @@
-# code.py — main entry point on the QT Py ESP32-S2.
+# code.py — main entry point on the QT Py ESP32-S3 (#5700).
 #
 # Orchestrates the whole map: WiFi (or setup portal) -> NTP clock -> weather
 # fetch -> LED render (with time-of-day dimming / off) -> config web UI ->

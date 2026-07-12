@@ -4,7 +4,7 @@ A live aviation-weather map: SK6812 RGB LEDs show each airport's flight category
 (VFR / MVFR / IFR / LIFR) with animations for wind, thunderstorms, freezing
 precipitation, snow, fog, severe weather, icing potential, and stale data.
 
-Runs on an **Adafruit QT Py ESP32-S2** (#5325) driving the LED string through an
+Runs on an **Adafruit QT Py ESP32-S3** (#5700) driving the LED string through an
 **Adafruit NeoPixel Driver BFF** (#5645). Data comes from the current
 aviationweather.gov API (`/api/data/metar`, JSON).
 

@@ -1,5 +1,5 @@
 {
-  "version": "2.4.0",
+  "version": "2.4.1",
   "files": [
     {
       "path": "boot.py",
@@ -8,8 +8,8 @@
     },
     {
       "path": "code.py",
-      "size": 6792,
-      "sha256": "b2b680efd0d5c3a27c0d525a589626c7dfdddf440d37d97999ece974fe04aa0f"
+      "size": 6800,
+      "sha256": "824aea0ae73c88e30c30bdb6a097036f38c6ab5245a6e94a54834e32c728a6c0"
     },
     {
       "path": "metar_source.py",
