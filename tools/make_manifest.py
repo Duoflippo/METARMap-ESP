@@ -48,7 +48,7 @@ def main():
 
     manifest = {"version": version, "files": files}
     out = os.path.join(root, "version.json")
-    with open(out, "w") as f:
+    with open(out, "w", newline="\n") as f:  # force LF so it matches the repo blob
         json.dump(manifest, f, indent=2)
         f.write("\n")
     print("wrote version.json  (v%s, %d files)" % (version, len(files)))
