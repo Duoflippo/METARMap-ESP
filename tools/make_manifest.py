@@ -18,8 +18,8 @@ DEVICE_FILES = [
     "code.py",
     "metar_source.py",
     "updater.py",
+    "render.py",
     # Add these as they are built:
-    # "render.py",
     # "wifi_setup.py",
     # "webui.py",
 ]

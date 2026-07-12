@@ -9,6 +9,10 @@
 import time
 import metar_source
 import updater
+import render
+
+# How often to repaint the strip. ~12 fps keeps fades/twinkles smooth.
+FRAME_INTERVAL = 0.08
 
 # --- Config -----------------------------------------------------------------
 # All user-editable settings live in config.json on the device (never in git).
@@ -20,10 +24,12 @@ try:
 except (OSError, ValueError):
     CONFIG = {}
 
-AIRPORTS    = CONFIG.get("airports", ["KSEA", "KJFK", "KORD"])
-REFRESH_MIN = CONFIG.get("refreshMinutes", 5)
-AUTO_UPDATE = CONFIG.get("autoUpdate", True)
-UPDATE_HOUR = CONFIG.get("autoUpdateHour", 3)   # local hour to check for OTA
+AIRPORTS       = CONFIG.get("airports", ["KSEA", "KJFK", "KORD"])
+REFRESH_MIN    = CONFIG.get("refreshMinutes", 5)
+AUTO_UPDATE    = CONFIG.get("autoUpdate", True)
+UPDATE_HOUR    = CONFIG.get("autoUpdateHour", 3)   # local hour to check for OTA
+LED_COUNT      = CONFIG.get("ledCount", 50)
+LED_BRIGHTNESS = CONFIG.get("ledBrightness", 0.5)  # 0.0-1.0 (day/night dimming: TODO)
 
 
 def connect_wifi():
@@ -56,17 +62,24 @@ def sync_clock(session):
     pass
 
 
-def render(conditions):
-    # TODO: render.py — precedence engine + LED animations
-    # (severe > freezing > thunderstorm > high wind > snow > base category).
-    for sid in AIRPORTS:
-        c = conditions.get(sid)
-        print("  %-5s %s" % (sid, c["flightCategory"] if c else "None"))
+def make_pixels():
+    import board
+    import neopixel
+    # The NeoPixel Driver BFF (#5645) drives the strip off pin A0.
+    return neopixel.NeoPixel(
+        board.A0, LED_COUNT,
+        brightness=LED_BRIGHTNESS,
+        pixel_order=neopixel.GRB,   # SK6812 RGB
+        auto_write=False,
+    )
 
 
 def main():
+    pixels = make_pixels()
+    renderer = render.Renderer(pixels, AIRPORTS, CONFIG)
+
     if not connect_wifi():
-        return
+        return   # no creds yet; provisioning UI (wifi_setup.py) is TODO
     session = make_session()
     sync_clock(session)
 
@@ -74,6 +87,7 @@ def main():
     if AUTO_UPDATE:
         updater.check_and_update(session)   # reboots if an update installs
 
+    conditions = {}
     last_refresh = 0
     last_update_day = -1
     healthy_confirmed = False
@@ -81,10 +95,10 @@ def main():
     while True:
         now = time.time()
 
+        # Fetch fresh weather every REFRESH_MIN; animate continuously in between.
         if now - last_refresh >= REFRESH_MIN * 60:
             try:
                 conditions = metar_source.get_conditions(session, AIRPORTS, now_epoch=int(now))
-                render(conditions)
                 last_refresh = now
                 if not healthy_confirmed:
                     updater.confirm_healthy()   # accept any pending OTA update
@@ -92,13 +106,15 @@ def main():
             except Exception as e:
                 print("code.py: refresh error:", e)
 
+        renderer.render_frame(conditions)
+
         if AUTO_UPDATE:
             t = time.localtime(now)
             if t.tm_hour == UPDATE_HOUR and t.tm_yday != last_update_day:
                 last_update_day = t.tm_yday
                 updater.check_and_update(session)
 
-        time.sleep(5)
+        time.sleep(FRAME_INTERVAL)
 
 
 try:

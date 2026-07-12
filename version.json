@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
+  "version": "2.1.0",
   "files": [
     {
       "path": "boot.py",
@@ -8,8 +8,8 @@
     },
     {
       "path": "code.py",
-      "size": 3824,
-      "sha256": "4324384839544d7b9c4da796b0beb96951f752c4a9fbe8fb4fd3e786c6c8d688"
+      "size": 4347,
+      "sha256": "ac346eec90c55a1aaf26f3187c5a1ab88476c929fc8dead05a53816c7c942ff7"
     },
     {
       "path": "metar_source.py",
@@ -20,6 +20,11 @@
       "path": "updater.py",
       "size": 5009,
       "sha256": "421f8c2eaa4ba2b76d9315b342440467a7673afcee8f8de348d3ae3d83b43b11"
+    },
+    {
+      "path": "render.py",
+      "size": 8043,
+      "sha256": "cf397b83db2dcebfa4505b8cc97d3935ab6d326b836da8c3c4f76cdd084194a7"
     }
   ]
 }
