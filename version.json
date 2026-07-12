@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "files": [
+    {
+      "path": "boot.py",
+      "size": 2466,
+      "sha256": "6b350227e0a16597830eeeae45c39ec0e0bb284da6713291a2e1de7f0d8f743e"
+    },
+    {
+      "path": "code.py",
+      "size": 3824,
+      "sha256": "4324384839544d7b9c4da796b0beb96951f752c4a9fbe8fb4fd3e786c6c8d688"
+    },
+    {
+      "path": "metar_source.py",
+      "size": 10055,
+      "sha256": "94f86a3e54b953e202108272af6a073f82f2649b92461ac5300c0640fee3f6ee"
+    },
+    {
+      "path": "updater.py",
+      "size": 5009,
+      "sha256": "421f8c2eaa4ba2b76d9315b342440467a7673afcee8f8de348d3ae3d83b43b11"
+    }
+  ]
+}

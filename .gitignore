@@ -1,0 +1,15 @@
+# Device-local files — NEVER commit. These live only on the QT Py's flash.
+# Walling them off is what lets OTA updates overwrite code without ever
+# touching the user's WiFi password or their settings.
+config.json
+secrets.py
+settings.toml
+wifi.json
+*.bak
+*.new
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

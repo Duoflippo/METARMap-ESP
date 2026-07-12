@@ -1,0 +1,8 @@
+# Force LF everywhere. The OTA updater verifies downloaded files against
+# sha256 hashes in version.json — those are computed on LF bytes, and
+# raw.githubusercontent.com serves the repo blob verbatim. Any CRLF conversion
+# would cause every hash to mismatch and block updates. Keep it LF end to end.
+* text=auto eol=lf
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
