@@ -32,19 +32,12 @@ LED_COUNT      = CONFIG.get("ledCount", 50)
 LED_BRIGHTNESS = CONFIG.get("ledBrightness", 0.5)  # 0.0-1.0 (day/night dimming: TODO)
 
 
-def connect_wifi():
-    # TODO: replace with wifi_setup.connect() — stored creds + AP provisioning fallback.
-    import wifi
-    import os
-    ssid = CONFIG.get("wifiSsid") or os.getenv("CIRCUITPY_WIFI_SSID")
-    password = CONFIG.get("wifiPassword") or os.getenv("CIRCUITPY_WIFI_PASSWORD")
-    if not ssid:
-        print("code.py: no WiFi creds — provisioning UI is TODO (wifi_setup.py)")
-        return False
-    print("code.py: connecting to %s ..." % ssid)
-    wifi.radio.connect(ssid, password)
-    print("code.py: connected, IP =", wifi.radio.ipv4_address)
-    return True
+def connect_wifi(pixels):
+    # Connect with stored creds, or fall back to the AP setup portal. If no
+    # credentials work, ensure_connected serves the portal and reboots when the
+    # user saves — so this only returns True once we're actually online.
+    import wifi_setup
+    return wifi_setup.ensure_connected(CONFIG, pixels=pixels)
 
 
 def make_session():
@@ -78,8 +71,9 @@ def main():
     pixels = make_pixels()
     renderer = render.Renderer(pixels, AIRPORTS, CONFIG)
 
-    if not connect_wifi():
-        return   # no creds yet; provisioning UI (wifi_setup.py) is TODO
+    if not connect_wifi(pixels):
+        return   # unreachable: portal reboots the device once WiFi is configured
+    pixels.brightness = LED_BRIGHTNESS   # restore after any setup-mode indicator
     session = make_session()
     sync_clock(session)
 

@@ -19,8 +19,8 @@ DEVICE_FILES = [
     "metar_source.py",
     "updater.py",
     "render.py",
+    "wifi_setup.py",
     # Add these as they are built:
-    # "wifi_setup.py",
     # "webui.py",
 ]
 

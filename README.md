@@ -26,11 +26,31 @@ aviationweather.gov API (`/api/data/metar`, JSON).
 | `code.py` | Main loop: WiFi → fetch → render → periodic OTA check |
 | `metar_source.py` | The ONLY file that talks to aviationweather.gov |
 | `updater.py` | OTA: fetch manifest → verify → install → reboot |
-| `render.py` | *(TODO)* precedence engine + LED animations |
-| `wifi_setup.py` | *(TODO)* first-run WiFi provisioning (AP mode) |
+| `render.py` | Precedence engine + LED animations |
+| `wifi_setup.py` | First-run WiFi provisioning (AP mode) |
 | `webui.py` | *(TODO)* on-device config web UI |
 | `config.json` | *(device-only, not in git)* user settings + WiFi creds |
 | `version.json` | OTA manifest: current version + file hashes |
+
+## CircuitPython libraries required
+
+Install the current CircuitPython build on the QT Py, then `circup install`:
+
+- `neopixel`
+- `adafruit_requests`
+- `adafruit_connection_manager`
+- `adafruit_httpserver`
+- `adafruit_ntp` *(for time-based dimming / OTA scheduling, once wired)*
+- `adafruit_hashlib` *(optional — enables SHA-256 verification of OTA downloads)*
+
+## First-run setup (no computer needed)
+
+1. Power on the map. With no WiFi saved, it broadcasts an open network named
+   **`METARMap-Setup`**.
+2. Join that network from a phone and open **`http://192.168.4.1`**.
+3. Pick your WiFi from the scanned list, enter the password, tap Save.
+4. The map reboots and connects. If it ever can't (e.g. you change routers),
+   `METARMap-Setup` reappears automatically so you can reconfigure.
 
 ## Cutting a release (OTA)
 
