@@ -66,6 +66,13 @@ def start_provisioning(config, pixels=None, config_path="config.json"):
     networks = _scan(wifi)
     print("wifi_setup: starting AP '%s' (open)" % AP_SSID)
     wifi.radio.start_ap(AP_SSID, AP_PASSWORD)
+    # start_ap() does NOT hand out IPs on its own — without this, clients
+    # associate but get no address and can't reach the portal.
+    try:
+        wifi.radio.start_dhcp_ap()
+        print("wifi_setup: DHCP server started")
+    except Exception as e:
+        print("wifi_setup: start_dhcp_ap:", e)   # some CP versions auto-start it
 
     pool = socketpool.SocketPool(wifi.radio)
     server = Server(pool, debug=False)
