@@ -100,7 +100,7 @@ def start_provisioning(config, pixels=None, config_path="config.json"):
         _state["reset_at"] = time.monotonic() + 2.5   # let the response flush first
         return Response(request, _saved_html(ssid), content_type="text/html")
 
-    server.start(AP_IP)
+    server.start(AP_IP, port=80)   # port 80 so plain http://192.168.4.1 works
 
     # Wildcard DNS -> makes any hostname resolve to us, triggering the popup.
     # Best-effort: if it can't start, the manual-IP flow still works.

@@ -1,5 +1,5 @@
 {
-  "version": "2.5.1",
+  "version": "2.5.2",
   "files": [
     {
       "path": "boot.py",
@@ -8,8 +8,8 @@
     },
     {
       "path": "code.py",
-      "size": 6800,
-      "sha256": "824aea0ae73c88e30c30bdb6a097036f38c6ab5245a6e94a54834e32c728a6c0"
+      "size": 6838,
+      "sha256": "46166cb21672cbd48912fab396b56cb8087e56bb776b86173d7ad72ef2ba8a6b"
     },
     {
       "path": "metar_source.py",
@@ -28,8 +28,8 @@
     },
     {
       "path": "wifi_setup.py",
-      "size": 8367,
-      "sha256": "69c6c56fb0c893f68b59d2df7643d29a749bc3660e558525b3c04dab18f88d56"
+      "size": 8422,
+      "sha256": "8958ecafb8bddc282a40902b4d91bd7174e200fdc1e1f8073018cb605c6d7830"
     },
     {
       "path": "captive_dns.py",

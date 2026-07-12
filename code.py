@@ -114,7 +114,7 @@ def main():
         server = Server(pool, debug=False)
         ui = webui.ConfigUI(CONFIG, renderer, pixels, session)
         ui.register(server)
-        server.start(str(wifi.radio.ipv4_address))
+        server.start(str(wifi.radio.ipv4_address), port=80)   # plain http:// (no :5000)
         print("code.py: config UI at http://%s" % wifi.radio.ipv4_address)
     except Exception as e:
         print("code.py: config UI unavailable:", e)
