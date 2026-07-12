@@ -26,6 +26,7 @@ DEFAULTS_EXTRA = {
     "tzOffsetHours": 0,
     "autoUpdate": True,
     "autoUpdateHour": 3,
+    "hostname": "metarmap",
 }
 
 # The form layout. Each field: (key, label, type). type drives render + parse.
@@ -36,15 +37,15 @@ SCHEMA = [
         ("refreshMinutes", "Weather refresh interval (minutes)", "int"),
     ]),
     ("Weather effects", [
-        ("lightning_enabled", "Thunderstorm — white flash", "bool"),
-        ("freezing_enabled", "Freezing precip — rose flash", "bool"),
-        ("snow_enabled", "Snow — white twinkle", "bool"),
-        ("severe_enabled", "Severe (tornado/hail/squall) — strobe", "bool"),
-        ("wind_enabled", "Wind — fade/blink + high-wind yellow", "bool"),
-        ("fog_enabled", "Fog — slow breathe", "bool"),
-        ("rain_enabled", "Heavy rain — blue shimmer", "bool"),
-        ("icing_enabled", "Icing potential — cyan tint", "bool"),
-        ("stale_enabled", "Stale data — dim pulse", "bool"),
+        ("lightning_enabled", "Thunderstorm - white flash", "bool"),
+        ("freezing_enabled", "Freezing precip - rose flash", "bool"),
+        ("snow_enabled", "Snow - white twinkle", "bool"),
+        ("severe_enabled", "Severe (tornado/hail/squall) - strobe", "bool"),
+        ("wind_enabled", "Wind - fade/blink + high-wind yellow", "bool"),
+        ("fog_enabled", "Fog - slow breathe", "bool"),
+        ("rain_enabled", "Heavy rain - blue shimmer", "bool"),
+        ("icing_enabled", "Icing potential - cyan tint", "bool"),
+        ("stale_enabled", "Stale data - dim pulse", "bool"),
     ]),
     ("Wind tuning", [
         ("wind_threshold", "Wind blink/fade threshold (kt)", "int"),
@@ -64,6 +65,7 @@ SCHEMA = [
         ("onHour", "On again at hour (0-23)", "hour"),
     ]),
     ("System", [
+        ("hostname", "Board name for x.local (reboot to apply)", "text"),
         ("tzOffsetHours", "UTC offset in hours (e.g. -7; no auto-DST)", "float"),
         ("autoUpdate", "Auto-update from GitHub", "bool"),
         ("autoUpdateHour", "Daily update-check hour (0-23)", "hour"),
@@ -168,6 +170,10 @@ class ConfigUI:
                         self.config[key] = float(form.get(key, self.current(key)))
                     except (ValueError, TypeError):
                         pass
+                elif typ == "text":
+                    v = form.get(key, "").strip()
+                    if v:
+                        self.config[key] = v
                 elif typ == "airports":
                     raw = form.get(key, "")
                     aps = [tok.strip().upper() for tok in raw.replace(",", " ").split()]
@@ -206,6 +212,9 @@ class ConfigUI:
             text = "\n".join(val if isinstance(val, list) else [])
             return ("<label>%s</label><textarea name='%s' rows='8'>%s</textarea>"
                     % (label, key, text))
+        if typ == "text":
+            return ("<label>%s</label><input type='text' name='%s' value='%s'>"
+                    % (label, key, val))
         if typ in ("int", "hour"):
             extra = "min='0' max='23'" if typ == "hour" else ""
             return ("<label>%s</label><input type='number' name='%s' value='%s' %s>"
@@ -217,7 +226,7 @@ class ConfigUI:
 
     def _page(self):
         parts = [
-            "<!DOCTYPE html><html><head><meta name='viewport' "
+            "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' "
             "content='width=device-width,initial-scale=1'><title>METARMap</title>",
             "<style>body{font-family:sans-serif;max-width:520px;margin:1.5em auto;"
             "padding:0 1em}fieldset{border:1px solid #ccc;border-radius:8px;margin:1em 0}"

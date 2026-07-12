@@ -104,6 +104,19 @@ def main():
     pool, session = make_net()
     sync_clock(pool)
 
+    # mDNS: also reach the map at http://<name>.local (default metarmap.local),
+    # so users don't need to know the DHCP-assigned IP. Keep a reference so it
+    # isn't garbage-collected. Works on iOS/macOS/Windows/Linux; harmless if not.
+    try:
+        import wifi
+        import mdns
+        _mdns = mdns.Server(wifi.radio)
+        _mdns.hostname = CONFIG.get("hostname", "metarmap")
+        _mdns.advertise_service(service_type="_http", protocol="_tcp", port=80)
+        print("code.py: mDNS -> http://%s.local" % _mdns.hostname)
+    except Exception as e:
+        print("code.py: mDNS unavailable:", e)
+
     # Config web UI, served alongside the render loop on the map's own IP.
     ui = None
     server = None
