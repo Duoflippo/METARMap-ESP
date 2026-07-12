@@ -146,16 +146,28 @@ def _scan(wifi):
     return seen
 
 
-def _save_config(config, path):
+def _write_config(config, path):
     import json
+    with open(path, "w") as f:
+        json.dump(config, f)
+    print("wifi_setup: saved WiFi to", path)
+
+
+def _save_config(config, path):
     try:
-        with open(path, "w") as f:
-            json.dump(config, f)
-        print("wifi_setup: saved WiFi to", path)
+        _write_config(config, path)
+        return
+    except OSError:
+        pass
+    # The flash is read-only to CircuitPython unless boot.py remounted it (which
+    # only happens on a power-on/hard reset). If we reached provisioning via a
+    # soft reload, force it writable and retry so the save always sticks.
+    try:
+        import storage
+        storage.remount("/", readonly=False)
+        _write_config(config, path)
     except OSError as e:
-        # Fails if flash isn't writable (e.g. USB host owns it). boot.py remounts
-        # it writable, so this should only happen while tethered to a computer.
-        print("wifi_setup: could NOT save config:", e)
+        print("wifi_setup: could NOT save config even after remount:", e)
 
 
 def _urldecode(s):
