@@ -132,6 +132,17 @@ def main():
     except Exception as e:
         print("code.py: config UI unavailable:", e)
 
+    # Optional OLED (STEMMA QT): rotates through METAR details. Blank
+    # display_airports = all airports; otherwise just the listed subset.
+    disp = None
+    if CONFIG.get("display_enabled", True):
+        try:
+            import display as displaymod
+            disp = displaymod.MetarDisplay(rotation_secs=CONFIG.get("display_rotation_secs", 5))
+            disp.set_airports(CONFIG.get("display_airports") or AIRPORTS)
+        except Exception as e:
+            print("code.py: display unavailable:", e)
+
     # Check for updates on boot (also runs daily in the loop below).
     if AUTO_UPDATE:
         updater.check_and_update(session)   # reboots if an update installs
@@ -170,6 +181,9 @@ def main():
                 pixels.brightness = (CONFIG.get("ledBrightness", 0.5) if daytime
                                      else CONFIG.get("ledBrightnessDim", 0.1))
             renderer.render_frame(conditions)
+
+        if disp is not None:
+            disp.tick(conditions, time.monotonic())
 
         # Serve the config UI without blocking the animation (even while "off").
         if server is not None:

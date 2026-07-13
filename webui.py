@@ -27,6 +27,9 @@ DEFAULTS_EXTRA = {
     "autoUpdate": True,
     "autoUpdateHour": 3,
     "hostname": "metarmap",
+    "display_enabled": True,
+    "display_rotation_secs": 5,
+    "display_airports": [],
 }
 
 # The form layout. Each field: (key, label, type). type drives render + parse.
@@ -63,6 +66,11 @@ SCHEMA = [
         ("offEnabled", "Turn map fully OFF overnight", "bool"),
         ("offHour", "Off starts at hour (0-23)", "hour"),
         ("onHour", "On again at hour (0-23)", "hour"),
+    ]),
+    ("Display (optional OLED)", [
+        ("display_enabled", "Enable OLED display", "bool"),
+        ("display_rotation_secs", "Seconds per airport", "float"),
+        ("display_airports", "Airports to show (blank = all; ICAO per line)", "airportlist"),
     ]),
     ("System", [
         ("hostname", "Board name for x.local (reboot to apply)", "text"),
@@ -178,7 +186,11 @@ class ConfigUI:
                     raw = form.get(key, "")
                     aps = [tok.strip().upper() for tok in raw.replace(",", " ").split()]
                     if aps:
-                        self.config[key] = aps
+                        self.config[key] = aps          # never wipe the main map list
+                elif typ == "airportlist":
+                    raw = form.get(key, "")
+                    # empty is valid here -> "show all airports"
+                    self.config[key] = [tok.strip().upper() for tok in raw.replace(",", " ").split()]
         self._save()
         self._apply_live()
 
@@ -208,10 +220,11 @@ class ConfigUI:
             chk = "checked" if val else ""
             return ("<label class='cb'><input type='checkbox' name='%s' %s>%s</label>"
                     % (key, chk, label))
-        if typ == "airports":
+        if typ in ("airports", "airportlist"):
+            rows = "8" if typ == "airports" else "4"
             text = "\n".join(val if isinstance(val, list) else [])
-            return ("<label>%s</label><textarea name='%s' rows='8'>%s</textarea>"
-                    % (label, key, text))
+            return ("<label>%s</label><textarea name='%s' rows='%s'>%s</textarea>"
+                    % (label, key, rows, text))
         if typ == "text":
             return ("<label>%s</label><input type='text' name='%s' value='%s'>"
                     % (label, key, val))

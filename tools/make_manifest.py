@@ -22,6 +22,7 @@ DEVICE_FILES = [
     "wifi_setup.py",
     "captive_dns.py",
     "webui.py",
+    "display.py",
 ]
 
 
