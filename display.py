@@ -54,7 +54,7 @@ class MetarDisplay:
         import board
         import displayio
         import terminalio
-        import adafruit_displayio_ssd1327
+        import adafruit_ssd1327          # SSD1327 driver (note: no displayio_ prefix)
         from adafruit_display_text import label
         try:
             from i2cdisplaybus import I2CDisplayBus       # CircuitPython 9+
@@ -78,7 +78,7 @@ class MetarDisplay:
         if bus is None:
             raise last_err or RuntimeError("no display on I2C")
 
-        self.display = adafruit_displayio_ssd1327.SSD1327(bus, width=128, height=128)
+        self.display = adafruit_ssd1327.SSD1327(bus, width=128, height=128)
         self.group = displayio.Group()
         try:
             self.display.root_group = self.group
