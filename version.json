@@ -1,10 +1,10 @@
 {
-  "version": "2.7.0",
+  "version": "2.8.0",
   "files": [
     {
       "path": "boot.py",
-      "size": 2466,
-      "sha256": "6b350227e0a16597830eeeae45c39ec0e0bb284da6713291a2e1de7f0d8f743e"
+      "size": 3074,
+      "sha256": "3ac3187417ff0aa7d1795427b0e8fe8bdcd36b74f9ab0ae27e7bdb162a8844b7"
     },
     {
       "path": "code.py",
@@ -38,8 +38,8 @@
     },
     {
       "path": "webui.py",
-      "size": 13048,
-      "sha256": "e9e9946befc1b55b48e2a18ae85adf12fdf2d45d1d1fcdb2ec9fe61d24303128"
+      "size": 13965,
+      "sha256": "dc363896ec139d11aeabf4161d7df2110d469e46ec60d912a4e51887907a2ec1"
     },
     {
       "path": "display.py",

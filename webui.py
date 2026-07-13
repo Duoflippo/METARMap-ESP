@@ -129,6 +129,22 @@ class ConfigUI:
             return Response(request, _msg("Rebooting", "The map will restart now."),
                             content_type="text/html")
 
+        @server.route("/maint", POST)
+        def _maint(request):
+            # Reboot with the flash left writable to USB (boot.py reads NVM[3]),
+            # so you can `circup install` libraries or edit files from a computer.
+            try:
+                import microcontroller
+                microcontroller.nvm[3] = 1
+            except Exception:
+                pass
+            self._pending = ("reboot", time.monotonic() + 2)
+            return Response(request, _msg("USB maintenance mode",
+                            "Rebooting with the USB drive writable so a connected "
+                            "computer can install libraries (circup) or edit files. "
+                            "Press the board's reset button when done to return to normal."),
+                            content_type="text/html")
+
     def tick(self):
         """Called each frame from code.py to run any deferred action after its
         HTTP response has had time to flush."""
@@ -265,6 +281,7 @@ class ConfigUI:
             "<form action='/update' method='post'><button>Check for updates</button></form>"
             "<form action='/reboot' method='post'><button>Reboot</button></form>"
             "<form action='/wifi' method='post'><button>Change WiFi</button></form>"
+            "<form action='/maint' method='post'><button>USB maintenance</button></form>"
             "</div>")
         parts.append("</body></html>")
         return "".join(parts)
