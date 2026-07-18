@@ -47,6 +47,25 @@ def decode_wx(wx):
     return ", ".join(parts)
 
 
+def _altimeter(raw):
+    """Altimeter from the raw METAR: 'A3015' -> '30.15' (inHg), 'Q1013' -> '1013hPa'."""
+    for tok in (raw or "").split():
+        if len(tok) == 5 and tok[1:].isdigit():
+            if tok[0] == "A":
+                return "%s.%s" % (tok[1:3], tok[3:5])
+            if tok[0] == "Q":
+                return tok[1:] + "hPa"
+    return ""
+
+
+def _obs_time(raw):
+    """Observation time token from the raw METAR, e.g. '121953Z' (DDHHMMZ, UTC)."""
+    for tok in (raw or "").split():
+        if len(tok) == 7 and tok.endswith("Z") and tok[:6].isdigit():
+            return tok
+    return ""
+
+
 def _cloud_str(layer):
     """A METAR-style cloud layer like 'BKN014' (cover + base in hundreds of ft)."""
     cover = (layer.get("cover") or "").upper()
@@ -107,6 +126,14 @@ def format_lines(sid, c):
     d = c.get("dewpointC")
     if t is not None or d is not None:
         body.append("Temp %s/%sC" % (t if t is not None else "?", d if d is not None else "?"))
+
+    alt = _altimeter(c.get("raw"))
+    if alt:
+        body.append("Alt " + alt)
+
+    tz = _obs_time(c.get("raw"))
+    if tz:
+        body.append("Obs " + tz)
 
     return sid, cat, body
 
@@ -205,14 +232,17 @@ if __name__ == "__main__":
     tests = [
         ("KSEA", {"flightCategory": "VFR", "windDir": 270, "windSpeed": 6,
                   "windGustSpeed": 0, "visibility": 10.0, "tempC": 19, "dewpointC": 7,
-                  "wxString": "", "clouds": [{"cover": "FEW", "base": 3000}]}),
+                  "wxString": "", "clouds": [{"cover": "FEW", "base": 3000}],
+                  "raw": "METAR KSEA 121953Z 27006KT 10SM FEW030 19/07 A3015 RMK"}),
         ("KJFK", {"flightCategory": "IFR", "windDir": None, "windSpeed": 12,
                   "windGustSpeed": 20, "visibility": 2.0, "tempC": 3, "dewpointC": 2,
                   "wxString": "-RA BR HZ", "clouds": [{"cover": "SCT", "base": 1400},
-                  {"cover": "BKN", "base": 2500}, {"cover": "OVC", "base": 4000}]}),
+                  {"cover": "BKN", "base": 2500}, {"cover": "OVC", "base": 4000}],
+                  "raw": "METAR KJFK 121951Z VRB12G20KT 2SM -RA BR SCT014 BKN025 OVC040 03/02 A2987"}),
         ("KBFI", {"flightCategory": "VFR", "windDir": 0, "windSpeed": 0,
                   "windGustSpeed": 0, "visibility": 10.0, "tempC": 15, "dewpointC": 4,
-                  "wxString": "+TSRA", "clouds": []}),
+                  "wxString": "+TSRA", "clouds": [],
+                  "raw": "METAR KBFI 122015Z 00000KT 10SM +TSRA CLR 15/04 A3002"}),
     ]
     for sid, c in tests:
         icao, cat, body = format_lines(sid, c)
