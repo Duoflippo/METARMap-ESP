@@ -5,33 +5,61 @@
 # the LED data pin (A0). Auto-disables cleanly if the display OR its libraries
 # are absent, so shipping this module to a board without them is harmless.
 #
+# Layout (128x128):
+#   Row 1 (big, scale 2):  ICAO ......... CATEGORY   (opposite corners)
+#   Body (scale 1):        Wind / [wx] / Vis / cloud layers / Temp-Dewpoint
+#   (observation time is intentionally dropped to make room for clouds)
+#
 # format_lines() is pure (no hardware) so it can be unit-tested on desktop.
 
 
+def _cloud_str(layer):
+    """A METAR-style cloud layer like 'BKN014' (cover + base in hundreds of ft)."""
+    cover = (layer.get("cover") or "").upper()
+    base = layer.get("base")
+    if base is not None and cover and cover not in ("CLR", "SKC", "NSC", "NCD"):
+        return "%s%03d" % (cover, int(base) // 100)
+    return cover or "SKC"
+
+
 def format_lines(sid, c):
-    """Return (title, [body lines]) of text to show for one station."""
+    """Return (icao, category, [body lines]) for one station."""
     if c is None:
-        return sid, ["(no data)"]
+        return sid, "", ["(no data)"]
+
+    cat = c.get("flightCategory") or "?"
+
     wdir = c.get("windDir")
-    wind = "%s@%d" % ("VRB" if wdir is None else wdir, c.get("windSpeed", 0))
+    spd = c.get("windSpeed", 0)
     gust = c.get("windGustSpeed", 0)
-    if gust:
-        wind += "G%d" % gust
-    lines = [c.get("flightCategory") or "?", "Wind " + wind + "kt"]
+    if spd == 0 and not gust:
+        wind = "calm"
+    else:
+        wind = "%s@%d" % ("VRB" if wdir is None else wdir, spd)
+        if gust:
+            wind += "G%d" % gust
+    body = ["Wind " + wind]
+
+    wx = (c.get("wxString") or "").strip()
+    if wx:
+        body.append(wx)
+
     vis = c.get("visibility")
-    lines.append("Vis " + ("%g" % vis if vis is not None else "?") + "sm")
+    body.append(("Vis %gSM" % vis) if vis is not None else "Vis ?")
+
+    clouds = c.get("clouds") or []
+    if clouds:
+        for layer in clouds:
+            body.append(_cloud_str(layer))
+    else:
+        body.append("CLR")
+
     t = c.get("tempC")
     d = c.get("dewpointC")
-    lines.append("T/Dp %s/%s C" % (t if t is not None else "?", d if d is not None else "?"))
-    wx = [k for k, v in (c.get("wx") or {}).items() if v]
-    if wx:
-        lines.append(",".join(wx))
-    age = c.get("ageMin")
-    if c.get("stale"):
-        lines.append("STALE %s min" % age)
-    elif age is not None:
-        lines.append("obs %s min" % age)
-    return sid, lines
+    if t is not None or d is not None:
+        body.append("T/Dp %s/%sC" % (t if t is not None else "?", d if d is not None else "?"))
+
+    return sid, cat, body
 
 
 class MetarDisplay:
@@ -85,10 +113,18 @@ class MetarDisplay:
         except AttributeError:
             self.display.show(self.group)                 # older displayio
 
-        self._title = label.Label(terminalio.FONT, text="", scale=2, x=4, y=14)
-        self._body = [label.Label(terminalio.FONT, text="", x=4, y=44 + i * 14)
-                      for i in range(5)]
-        self.group.append(self._title)
+        # Header row: ICAO top-left + category top-right, both big (scale 2).
+        self._icao = label.Label(terminalio.FONT, text="", scale=2,
+                                 anchor_point=(0.0, 0.0), anchored_position=(2, 2))
+        self._cat = label.Label(terminalio.FONT, text="", scale=2,
+                                anchor_point=(1.0, 0.0), anchored_position=(126, 2))
+        self.group.append(self._icao)
+        self.group.append(self._cat)
+
+        # Body: up to 8 detail lines at scale 1, below the header.
+        self._body = [label.Label(terminalio.FONT, text="",
+                                  anchor_point=(0.0, 0.0), anchored_position=(2, 30 + i * 12))
+                      for i in range(8)]
         for lbl in self._body:
             self.group.append(lbl)
 
@@ -106,10 +142,11 @@ class MetarDisplay:
         self._last = now
         sid = self._airports[self._idx]
         self._idx = (self._idx + 1) % len(self._airports)
-        title, lines = format_lines(sid, (conditions or {}).get(sid))
-        self._title.text = title
+        icao, cat, body = format_lines(sid, (conditions or {}).get(sid))
+        self._icao.text = icao
+        self._cat.text = cat
         for i, lbl in enumerate(self._body):
-            lbl.text = lines[i] if i < len(lines) else ""
+            lbl.text = body[i] if i < len(body) else ""
 
 
 # --- desktop self-test: `python display.py` ---------------------------------
@@ -117,12 +154,16 @@ if __name__ == "__main__":
     tests = [
         ("KSEA", {"flightCategory": "VFR", "windDir": 270, "windSpeed": 6,
                   "windGustSpeed": 0, "visibility": 10.0, "tempC": 19, "dewpointC": 7,
-                  "wx": {}, "ageMin": 12, "stale": False}),
+                  "wxString": "", "clouds": [{"cover": "FEW", "base": 3000}]}),
         ("KJFK", {"flightCategory": "IFR", "windDir": None, "windSpeed": 12,
                   "windGustSpeed": 20, "visibility": 2.0, "tempC": 3, "dewpointC": 2,
-                  "wx": {"freezing": True, "snow": True}, "ageMin": 150, "stale": True}),
+                  "wxString": "-RA BR", "clouds": [{"cover": "SCT", "base": 1400},
+                  {"cover": "BKN", "base": 2500}, {"cover": "OVC", "base": 4000}]}),
+        ("KBFI", {"flightCategory": "VFR", "windDir": 0, "windSpeed": 0,
+                  "windGustSpeed": 0, "visibility": 10.0, "tempC": 15, "dewpointC": 4,
+                  "wxString": "", "clouds": []}),
         ("KXXX", None),
     ]
     for sid, c in tests:
-        title, lines = format_lines(sid, c)
-        print("%-5s -> %s | %s" % (title, lines[0], " / ".join(lines[1:])))
+        icao, cat, body = format_lines(sid, c)
+        print("%-5s [%-4s] : %s" % (icao, cat, "  |  ".join(body)))
