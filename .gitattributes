@@ -6,3 +6,6 @@
 *.py text eol=lf
 *.json text eol=lf
 *.md text eol=lf
+
+# Font file is binary-ish; keep it out of eol normalization
+LeagueSpartan-Bold-16.bdf -text

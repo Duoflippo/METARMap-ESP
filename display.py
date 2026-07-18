@@ -1,16 +1,52 @@
 # display.py — optional I2C OLED that rotates through METAR conditions.
 #
 # Target: Adafruit 1.5" 128x128 grayscale OLED, SSD1327 driver, STEMMA QT (#4741).
-# Plugs into the QT Py's STEMMA QT port (I2C) with no soldering, independent of
-# the LED data pin (A0). Auto-disables cleanly if the display OR its libraries
-# are absent, so shipping this module to a board without them is harmless.
+# Plugs into the QT Py's STEMMA QT port (I2C), independent of the LED pin (A0).
+# Auto-disables cleanly if the display OR its libraries are absent.
 #
 # Layout (128x128):
-#   Row 1 (big, scale 2):  ICAO ......... CATEGORY   (opposite corners)
-#   Body (scale 1):        Wind / [wx] / Vis / cloud layers / Temp-Dewpoint
-#   (observation time is intentionally dropped to make room for clouds)
+#   Row 1 (big, built-in scale 2):  ICAO ......... CATEGORY   (opposite corners)
+#   Body (medium bitmap font):      Wind / weather / Vis / cloud layers / Temp
+#   Cloud layers pack onto a line and wrap to the next only when full.
+#   Present weather is decoded to words (Rain, Mist, Haze, ...).
 #
-# format_lines() is pure (no hardware) so it can be unit-tested on desktop.
+# The pure text helpers are unit-testable on desktop.
+
+FONT_PATH = "/LeagueSpartan-Bold-16.bdf"   # medium font; falls back to built-in
+
+# METAR present-weather decoding -------------------------------------------
+_WX_INTENS = {"-": "Lt ", "+": "Hvy "}
+_WX_DESC = {"MI": "Shallow", "PR": "Partial", "BC": "Patchy", "DR": "Drifting",
+            "BL": "Blowing", "SH": "Showers", "TS": "T-storm", "FZ": "Freezing",
+            "VC": "Nearby"}
+_WX_PHEN = {"DZ": "Drizzle", "RA": "Rain", "SN": "Snow", "SG": "Snow Grains",
+            "IC": "Ice Crystals", "PL": "Ice Pellets", "GR": "Hail", "GS": "Sm Hail",
+            "UP": "Precip", "BR": "Mist", "FG": "Fog", "FU": "Smoke", "VA": "Ash",
+            "DU": "Dust", "SA": "Sand", "HZ": "Haze", "PY": "Spray", "PO": "Whirls",
+            "SQ": "Squall", "FC": "Funnel", "SS": "Sandstorm", "DS": "Duststorm"}
+
+
+def decode_wx(wx):
+    """'-RA BR' -> 'Lt Rain, Mist'.  'HZ' -> 'Haze'.  '' if none."""
+    wx = (wx or "").strip().upper()
+    if not wx:
+        return ""
+    parts = []
+    for tok in wx.split():
+        pre = ""
+        if tok[:1] in ("-", "+"):
+            pre = _WX_INTENS.get(tok[0], "")
+            tok = tok[1:]
+        words = []
+        k = 0
+        while k + 2 <= len(tok):
+            code = tok[k:k + 2]
+            words.append(_WX_DESC.get(code) or _WX_PHEN.get(code) or code)
+            k += 2
+        phrase = (pre + " ".join(words)).strip()
+        if phrase:
+            parts.append(phrase)
+    return ", ".join(parts)
 
 
 def _cloud_str(layer):
@@ -22,10 +58,29 @@ def _cloud_str(layer):
     return cover or "SKC"
 
 
+def _cloud_lines(clouds, budget=15):
+    """Pack cloud layers onto shared lines, wrapping only when a line is full."""
+    if not clouds:
+        return ["CLR"]
+    lines = []
+    cur = ""
+    for layer in clouds:
+        code = _cloud_str(layer)
+        cand = code if not cur else cur + " " + code
+        if len(cand) > budget and cur:
+            lines.append(cur)
+            cur = code
+        else:
+            cur = cand
+    if cur:
+        lines.append(cur)
+    return lines
+
+
 def format_lines(sid, c):
     """Return (icao, category, [body lines]) for one station."""
     if c is None:
-        return sid, "", ["(no data)"]
+        return sid, "", ["No data"]
 
     cat = c.get("flightCategory") or "?"
 
@@ -33,31 +88,27 @@ def format_lines(sid, c):
     spd = c.get("windSpeed", 0)
     gust = c.get("windGustSpeed", 0)
     if spd == 0 and not gust:
-        wind = "calm"
+        wind = "Calm"
     else:
         wind = "%s@%d" % ("VRB" if wdir is None else wdir, spd)
         if gust:
             wind += "G%d" % gust
+        wind += "kt"
     body = ["Wind " + wind]
 
-    wx = (c.get("wxString") or "").strip()
-    if wx:
-        body.append(wx)
+    wxs = decode_wx(c.get("wxString"))
+    if wxs:
+        body.append(wxs)
 
     vis = c.get("visibility")
     body.append(("Vis %gSM" % vis) if vis is not None else "Vis ?")
 
-    clouds = c.get("clouds") or []
-    if clouds:
-        for layer in clouds:
-            body.append(_cloud_str(layer))
-    else:
-        body.append("CLR")
+    body.extend(_cloud_lines(c.get("clouds") or []))
 
     t = c.get("tempC")
     d = c.get("dewpointC")
     if t is not None or d is not None:
-        body.append("T/Dp %s/%sC" % (t if t is not None else "?", d if d is not None else "?"))
+        body.append("Temp %s/%sC" % (t if t is not None else "?", d if d is not None else "?"))
 
     return sid, cat, body
 
@@ -89,6 +140,14 @@ class MetarDisplay:
         except ImportError:
             from displayio import I2CDisplay as I2CDisplayBus
 
+        # Medium body font if the file is present; else fall back to built-in.
+        body_font = terminalio.FONT
+        try:
+            from adafruit_bitmap_font import bitmap_font
+            body_font = bitmap_font.load_font(FONT_PATH)
+        except Exception as e:
+            print("display: medium font unavailable, using built-in:", e)
+
         displayio.release_displays()
         try:
             i2c = board.STEMMA_I2C()
@@ -113,7 +172,7 @@ class MetarDisplay:
         except AttributeError:
             self.display.show(self.group)                 # older displayio
 
-        # Header row: ICAO top-left + category top-right, both big (scale 2).
+        # Header row: ICAO top-left + category top-right, big (built-in scale 2).
         self._icao = label.Label(terminalio.FONT, text="", scale=2,
                                  anchor_point=(0.0, 0.0), anchored_position=(2, 2))
         self._cat = label.Label(terminalio.FONT, text="", scale=2,
@@ -121,10 +180,10 @@ class MetarDisplay:
         self.group.append(self._icao)
         self.group.append(self._cat)
 
-        # Body: up to 8 detail lines at scale 1, below the header.
-        self._body = [label.Label(terminalio.FONT, text="",
-                                  anchor_point=(0.0, 0.0), anchored_position=(2, 30 + i * 12))
-                      for i in range(8)]
+        # Body: up to 6 medium-font lines below the header.
+        self._body = [label.Label(body_font, text="",
+                                  anchor_point=(0.0, 0.0), anchored_position=(2, 26 + i * 17))
+                      for i in range(6)]
         for lbl in self._body:
             self.group.append(lbl)
 
@@ -157,13 +216,14 @@ if __name__ == "__main__":
                   "wxString": "", "clouds": [{"cover": "FEW", "base": 3000}]}),
         ("KJFK", {"flightCategory": "IFR", "windDir": None, "windSpeed": 12,
                   "windGustSpeed": 20, "visibility": 2.0, "tempC": 3, "dewpointC": 2,
-                  "wxString": "-RA BR", "clouds": [{"cover": "SCT", "base": 1400},
+                  "wxString": "-RA BR HZ", "clouds": [{"cover": "SCT", "base": 1400},
                   {"cover": "BKN", "base": 2500}, {"cover": "OVC", "base": 4000}]}),
         ("KBFI", {"flightCategory": "VFR", "windDir": 0, "windSpeed": 0,
                   "windGustSpeed": 0, "visibility": 10.0, "tempC": 15, "dewpointC": 4,
-                  "wxString": "", "clouds": []}),
-        ("KXXX", None),
+                  "wxString": "+TSRA", "clouds": []}),
     ]
     for sid, c in tests:
         icao, cat, body = format_lines(sid, c)
-        print("%-5s [%-4s] : %s" % (icao, cat, "  |  ".join(body)))
+        print("%-5s [%-4s]" % (icao, cat))
+        for line in body:
+            print("      " + line)
