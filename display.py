@@ -6,13 +6,11 @@
 #
 # Layout (128x128):
 #   Row 1 (big, built-in scale 2):  ICAO ......... CATEGORY   (opposite corners)
-#   Body (medium bitmap font):      Wind / weather / Vis / cloud layers / Temp
+#   Body (built-in font):           Wind / weather / Vis / cloud layers / Temp
 #   Cloud layers pack onto a line and wrap to the next only when full.
 #   Present weather is decoded to words (Rain, Mist, Haze, ...).
 #
 # The pure text helpers are unit-testable on desktop.
-
-FONT_PATH = "/LeagueSpartan-Bold-16.bdf"   # medium font; falls back to built-in
 
 # METAR present-weather decoding -------------------------------------------
 _WX_INTENS = {"-": "Lt ", "+": "Hvy "}
@@ -58,7 +56,7 @@ def _cloud_str(layer):
     return cover or "SKC"
 
 
-def _cloud_lines(clouds, budget=15):
+def _cloud_lines(clouds, budget=20):
     """Pack cloud layers onto shared lines, wrapping only when a line is full."""
     if not clouds:
         return ["CLR"]
@@ -140,13 +138,7 @@ class MetarDisplay:
         except ImportError:
             from displayio import I2CDisplay as I2CDisplayBus
 
-        # Medium body font if the file is present; else fall back to built-in.
-        body_font = terminalio.FONT
-        try:
-            from adafruit_bitmap_font import bitmap_font
-            body_font = bitmap_font.load_font(FONT_PATH)
-        except Exception as e:
-            print("display: medium font unavailable, using built-in:", e)
+        body_font = terminalio.FONT   # clean built-in font (reverted from bitmap font)
 
         displayio.release_displays()
         try:
@@ -180,10 +172,10 @@ class MetarDisplay:
         self.group.append(self._icao)
         self.group.append(self._cat)
 
-        # Body: up to 6 medium-font lines below the header.
+        # Body: up to 8 built-in-font lines below the header.
         self._body = [label.Label(body_font, text="",
-                                  anchor_point=(0.0, 0.0), anchored_position=(2, 26 + i * 17))
-                      for i in range(6)]
+                                  anchor_point=(0.0, 0.0), anchored_position=(2, 24 + i * 12))
+                      for i in range(8)]
         for lbl in self._body:
             self.group.append(lbl)
 
