@@ -138,7 +138,11 @@ def main():
     if CONFIG.get("display_enabled", True):
         try:
             import display as displaymod
-            disp = displaymod.MetarDisplay(rotation_secs=CONFIG.get("display_rotation_secs", 5))
+            disp = displaymod.MetarDisplay(
+                rotation_secs=CONFIG.get("display_rotation_secs", 5),
+                kind=CONFIG.get("display_type", "auto"),
+                rotation=CONFIG.get("display_rotation", 90),
+            )
             disp.set_airports(CONFIG.get("display_airports") or AIRPORTS)
         except Exception as e:
             print("code.py: display unavailable:", e)

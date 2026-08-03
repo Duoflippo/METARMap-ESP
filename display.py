@@ -1,18 +1,27 @@
-# display.py — optional I2C OLED that rotates through METAR conditions.
+# display.py — optional screen that rotates through METAR conditions.
 #
-# Target: Adafruit 1.5" 128x128 grayscale OLED, SSD1327 driver, STEMMA QT (#4741).
-# Plugs into the QT Py's STEMMA QT port (I2C), independent of the LED pin (A3).
-# Auto-disables cleanly if the display OR its libraries are absent.
+# Supports TWO displays, auto-detected (display_type = auto|oled|tft|off):
+#   * OLED  — Adafruit 1.5" 128x128 grayscale SSD1327, I2C via STEMMA QT (#4741)
+#   * TFT   — 320x240 color ILI9341 over SPI (e.g. SparkFun COM-28380)
+#             wiring: SCK->SCK, MOSI->MOSI, CS->A0, DC->A1, RESET->A2,
+#             backlight->3V, VCC->3V, GND->GND   (LEDs stay on A3)
 #
-# Layout (128x128):
-#   Row 1 (big, built-in scale 2):  ICAO ......... CATEGORY   (opposite corners)
-#   Body (built-in font):           Wind / weather / Vis / cloud layers / Temp
-#   Cloud layers pack onto a line and wrap to the next only when full.
-#   Present weather is decoded to words (Rain, Mist, Haze, ...).
+# "auto" tries the I2C OLED first, then falls back to the SPI TFT. Auto-disables
+# cleanly if neither the display nor its driver library is present.
 #
+# On the color TFT, the flight category is drawn in its LED color.
 # The pure text helpers are unit-testable on desktop.
 
-# METAR present-weather decoding -------------------------------------------
+# Category colors (0xRRGGBB) matching the LED strip.
+CAT_COLORS = {"VFR": 0x00FF00, "MVFR": 0x0000FF, "IFR": 0xFF0000, "LIFR": 0xFF00FF}
+WHITE = 0xFFFFFF
+
+
+def cat_color(cat):
+    return CAT_COLORS.get((cat or "").upper(), WHITE)
+
+
+# --- METAR present-weather decoding ---------------------------------------
 _WX_INTENS = {"-": "Lt ", "+": "Hvy "}
 _WX_DESC = {"MI": "Shallow", "PR": "Partial", "BC": "Patchy", "DR": "Drifting",
             "BL": "Blowing", "SH": "Showers", "TS": "T-storm", "FZ": "Freezing",
@@ -48,7 +57,7 @@ def decode_wx(wx):
 
 
 def _altimeter(raw):
-    """Altimeter from the raw METAR: 'A3015' -> '30.15' (inHg), 'Q1013' -> '1013hPa'."""
+    """'A3015' -> '30.15' (inHg); 'Q1013' -> '1013hPa'."""
     for tok in (raw or "").split():
         if len(tok) == 5 and tok[1:].isdigit():
             if tok[0] == "A":
@@ -138,34 +147,23 @@ def format_lines(sid, c):
     return sid, cat, body
 
 
-class MetarDisplay:
-    ADDRS = (0x3D, 0x3C)   # SSD1327 default 0x3D, some boards 0x3C
+# --- Screen backends -------------------------------------------------------
 
-    def __init__(self, rotation_secs=5.0):
-        self.rotation_secs = rotation_secs
-        self.ok = False
-        self._airports = []
-        self._idx = 0
-        self._last = 0.0
-        try:
-            self._setup()
-            self.ok = True
-            print("display: OLED ready")
-        except Exception as e:
-            print("display: no OLED / init skipped:", e)
+class _OledScreen:
+    """128x128 grayscale SSD1327 over I2C. Category shown white (grayscale)."""
+    name = "OLED"
+    ADDRS = (0x3D, 0x3C)
 
-    def _setup(self):
+    def __init__(self):
         import board
         import displayio
         import terminalio
-        import adafruit_ssd1327          # SSD1327 driver (note: no displayio_ prefix)
+        import adafruit_ssd1327
         from adafruit_display_text import label
         try:
-            from i2cdisplaybus import I2CDisplayBus       # CircuitPython 9+
+            from i2cdisplaybus import I2CDisplayBus
         except ImportError:
             from displayio import I2CDisplay as I2CDisplayBus
-
-        body_font = terminalio.FONT   # clean built-in font (reverted from bitmap font)
 
         displayio.release_displays()
         try:
@@ -182,29 +180,113 @@ class MetarDisplay:
             except Exception as e:
                 last_err = e
         if bus is None:
-            raise last_err or RuntimeError("no display on I2C")
+            raise last_err or RuntimeError("no OLED on I2C")
 
-        self.display = adafruit_ssd1327.SSD1327(bus, width=128, height=128)
+        disp = adafruit_ssd1327.SSD1327(bus, width=128, height=128)
         self.group = displayio.Group()
-        try:
-            self.display.root_group = self.group
-        except AttributeError:
-            self.display.show(self.group)                 # older displayio
+        _root(disp, self.group)
 
-        # Header row: ICAO top-left + category top-right, big (built-in scale 2).
         self._icao = label.Label(terminalio.FONT, text="", scale=2,
                                  anchor_point=(0.0, 0.0), anchored_position=(2, 2))
         self._cat = label.Label(terminalio.FONT, text="", scale=2,
                                 anchor_point=(1.0, 0.0), anchored_position=(126, 2))
         self.group.append(self._icao)
         self.group.append(self._cat)
-
-        # Body: up to 8 built-in-font lines below the header.
-        self._body = [label.Label(body_font, text="",
+        self._body = [label.Label(terminalio.FONT, text="",
                                   anchor_point=(0.0, 0.0), anchored_position=(2, 24 + i * 12))
                       for i in range(8)]
         for lbl in self._body:
             self.group.append(lbl)
+
+    def update(self, icao, cat, color, body):
+        self._icao.text = icao
+        self._cat.text = cat                 # grayscale: keep white
+        for i, lbl in enumerate(self._body):
+            lbl.text = body[i] if i < len(body) else ""
+
+
+class _TftScreen:
+    """320x240 color ILI9341 over SPI. Category drawn in its LED color."""
+    name = "TFT"
+
+    def __init__(self, rotation=90):
+        import board
+        import displayio
+        import terminalio
+        import adafruit_ili9341
+        from adafruit_display_text import label
+        try:
+            from fourwire import FourWire
+        except ImportError:
+            from displayio import FourWire
+
+        displayio.release_displays()
+        spi = board.SPI()
+        bus = FourWire(spi, command=board.A1, chip_select=board.A0, reset=board.A2)
+        disp = adafruit_ili9341.ILI9341(bus, width=320, height=240, rotation=rotation)
+        self.group = displayio.Group()
+        _root(disp, self.group)
+
+        self._icao = label.Label(terminalio.FONT, text="", scale=3, color=WHITE,
+                                 anchor_point=(0.0, 0.0), anchored_position=(6, 6))
+        self._cat = label.Label(terminalio.FONT, text="", scale=3, color=WHITE,
+                                anchor_point=(1.0, 0.0), anchored_position=(314, 6))
+        self.group.append(self._icao)
+        self.group.append(self._cat)
+        self._body = [label.Label(terminalio.FONT, text="", scale=2, color=WHITE,
+                                  anchor_point=(0.0, 0.0), anchored_position=(6, 44 + i * 22))
+                      for i in range(9)]
+        for lbl in self._body:
+            self.group.append(lbl)
+
+    def update(self, icao, cat, color, body):
+        self._icao.text = icao
+        self._cat.text = cat
+        self._cat.color = color              # category in its LED color
+        for i, lbl in enumerate(self._body):
+            lbl.text = body[i] if i < len(body) else ""
+
+
+def _root(disp, group):
+    try:
+        disp.root_group = group
+    except AttributeError:
+        disp.show(group)                     # older displayio
+
+
+def _make_screen(kind, rotation):
+    kind = (kind or "auto").lower()
+    if kind == "off":
+        return None
+    if kind in ("auto", "oled"):
+        try:
+            return _OledScreen()
+        except Exception as e:
+            if kind == "oled":
+                raise
+            print("display: no OLED (%s); trying TFT" % e)
+    if kind in ("auto", "tft"):
+        return _TftScreen(rotation)
+    return None
+
+
+class MetarDisplay:
+    def __init__(self, rotation_secs=5.0, kind="auto", rotation=90):
+        self.rotation_secs = rotation_secs
+        self.ok = False
+        self._airports = []
+        self._idx = 0
+        self._last = 0.0
+        self._screen = None
+        try:
+            self._screen = _make_screen(kind, rotation)
+            self.ok = self._screen is not None
+            if self.ok:
+                print("display: %s ready" % self._screen.name)
+            else:
+                print("display: none configured")
+        except Exception as e:
+            print("display: init skipped:", e)
 
     def set_airports(self, airports):
         """The ordered list to rotate through (NULL placeholders removed)."""
@@ -221,10 +303,7 @@ class MetarDisplay:
         sid = self._airports[self._idx]
         self._idx = (self._idx + 1) % len(self._airports)
         icao, cat, body = format_lines(sid, (conditions or {}).get(sid))
-        self._icao.text = icao
-        self._cat.text = cat
-        for i, lbl in enumerate(self._body):
-            lbl.text = body[i] if i < len(body) else ""
+        self._screen.update(icao, cat, cat_color(cat), body)
 
 
 # --- desktop self-test: `python display.py` ---------------------------------
@@ -233,19 +312,15 @@ if __name__ == "__main__":
         ("KSEA", {"flightCategory": "VFR", "windDir": 270, "windSpeed": 6,
                   "windGustSpeed": 0, "visibility": 10.0, "tempC": 19, "dewpointC": 7,
                   "wxString": "", "clouds": [{"cover": "FEW", "base": 3000}],
-                  "raw": "METAR KSEA 121953Z 27006KT 10SM FEW030 19/07 A3015 RMK"}),
+                  "raw": "METAR KSEA 121953Z 27006KT 10SM FEW030 19/07 A3015"}),
         ("KJFK", {"flightCategory": "IFR", "windDir": None, "windSpeed": 12,
                   "windGustSpeed": 20, "visibility": 2.0, "tempC": 3, "dewpointC": 2,
                   "wxString": "-RA BR HZ", "clouds": [{"cover": "SCT", "base": 1400},
                   {"cover": "BKN", "base": 2500}, {"cover": "OVC", "base": 4000}],
                   "raw": "METAR KJFK 121951Z VRB12G20KT 2SM -RA BR SCT014 BKN025 OVC040 03/02 A2987"}),
-        ("KBFI", {"flightCategory": "VFR", "windDir": 0, "windSpeed": 0,
-                  "windGustSpeed": 0, "visibility": 10.0, "tempC": 15, "dewpointC": 4,
-                  "wxString": "+TSRA", "clouds": [],
-                  "raw": "METAR KBFI 122015Z 00000KT 10SM +TSRA CLR 15/04 A3002"}),
     ]
     for sid, c in tests:
         icao, cat, body = format_lines(sid, c)
-        print("%-5s [%-4s]" % (icao, cat))
+        print("%-5s [%-4s] color=0x%06X" % (icao, cat, cat_color(cat)))
         for line in body:
             print("      " + line)

@@ -30,6 +30,8 @@ DEFAULTS_EXTRA = {
     "display_enabled": True,
     "display_rotation_secs": 5,
     "display_airports": [],
+    "display_type": "auto",
+    "display_rotation": 90,
 }
 
 # The form layout. Each field: (key, label, type). type drives render + parse.
@@ -67,8 +69,10 @@ SCHEMA = [
         ("offHour", "Off starts at hour (0-23)", "hour"),
         ("onHour", "On again at hour (0-23)", "hour"),
     ]),
-    ("Display (optional OLED)", [
-        ("display_enabled", "Enable OLED display", "bool"),
+    ("Display (OLED or TFT)", [
+        ("display_enabled", "Enable display", "bool"),
+        ("display_type", "Type: auto / oled / tft / off", "text"),
+        ("display_rotation", "TFT rotation (0/90/180/270)", "int"),
         ("display_rotation_secs", "Seconds per airport", "float"),
         ("display_airports", "Airports to show (blank = all; ICAO per line)", "airportlist"),
     ]),
