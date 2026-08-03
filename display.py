@@ -1,7 +1,7 @@
 # display.py — optional I2C OLED that rotates through METAR conditions.
 #
 # Target: Adafruit 1.5" 128x128 grayscale OLED, SSD1327 driver, STEMMA QT (#4741).
-# Plugs into the QT Py's STEMMA QT port (I2C), independent of the LED pin (A0).
+# Plugs into the QT Py's STEMMA QT port (I2C), independent of the LED pin (A3).
 # Auto-disables cleanly if the display OR its libraries are absent.
 #
 # Layout (128x128):

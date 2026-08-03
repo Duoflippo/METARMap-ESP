@@ -85,9 +85,9 @@ def _in_window(hour, start, end):
 def make_pixels():
     import board
     import neopixel
-    # The NeoPixel Driver BFF (#5645) drives the strip off pin A0.
+    # The NeoPixel Driver BFF (#5645) drives the strip off pin A3 by default.
     return neopixel.NeoPixel(
-        board.A0, LED_COUNT,
+        board.A3, LED_COUNT,
         brightness=LED_BRIGHTNESS,
         pixel_order=neopixel.GRB,   # SK6812 RGB
         auto_write=False,
