@@ -32,6 +32,12 @@ aviationweather.gov API (`/api/data/metar`, JSON).
 | `config.json` | *(device-only, not in git)* user settings + WiFi creds |
 | `version.json` | OTA manifest: current version + file hashes |
 
+## Flashing a fresh board
+
+See **[FLASHING.md](FLASHING.md)** for the full step-by-step (download mode →
+esptool flash → circup libraries → copy files → WiFi setup), plus hardware
+pinouts and troubleshooting.
+
 ## CircuitPython libraries required
 
 Install the current CircuitPython build on the QT Py, then `circup install`:
