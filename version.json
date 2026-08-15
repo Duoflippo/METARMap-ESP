@@ -1,5 +1,5 @@
 {
-  "version": "2.15.3",
+  "version": "2.15.4",
   "files": [
     {
       "path": "boot.py",
@@ -43,8 +43,8 @@
     },
     {
       "path": "display.py",
-      "size": 11573,
-      "sha256": "44911e8392bece67751deae44b4dfd011b12e2941d7c5ec487c0a46f963ee9a3"
+      "size": 11653,
+      "sha256": "6f61bf91729c805df3c2501f6aae5955dde7292160731d2095034a5d89845088"
     }
   ]
 }

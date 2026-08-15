@@ -227,14 +227,15 @@ class _TftScreen:
         self.group = displayio.Group()
         _root(disp, self.group)
 
-        self._icao = label.Label(terminalio.FONT, text="", scale=3, color=WHITE,
-                                 anchor_point=(0.0, 0.0), anchored_position=(6, 6))
-        self._cat = label.Label(terminalio.FONT, text="", scale=3, color=WHITE,
-                                anchor_point=(1.0, 0.0), anchored_position=(314, 6))
+        # Big header: airport code (left) + category (right, in its LED color).
+        self._icao = label.Label(terminalio.FONT, text="", scale=4, color=WHITE,
+                                 anchor_point=(0.0, 0.0), anchored_position=(6, 4))
+        self._cat = label.Label(terminalio.FONT, text="", scale=4, color=WHITE,
+                                anchor_point=(1.0, 0.0), anchored_position=(316, 4))
         self.group.append(self._icao)
         self.group.append(self._cat)
         self._body = [label.Label(terminalio.FONT, text="", scale=2, color=WHITE,
-                                  anchor_point=(0.0, 0.0), anchored_position=(6, 44 + i * 22))
+                                  anchor_point=(0.0, 0.0), anchored_position=(6, 50 + i * 21))
                       for i in range(9)]
         for lbl in self._body:
             self.group.append(lbl)
