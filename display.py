@@ -103,7 +103,7 @@ def _cloud_lines(clouds, budget=20):
     return lines
 
 
-def format_lines(sid, c):
+def format_lines(sid, c, cloud_budget=20):
     """Return (icao, category, [body lines]) for one station."""
     if c is None:
         return sid, "", ["No data"]
@@ -129,7 +129,7 @@ def format_lines(sid, c):
     vis = c.get("visibility")
     body.append(("Vis %gSM" % vis) if vis is not None else "Vis ?")
 
-    body.extend(_cloud_lines(c.get("clouds") or []))
+    body.extend(_cloud_lines(c.get("clouds") or [], cloud_budget))
 
     t = c.get("tempC")
     d = c.get("dewpointC")
@@ -153,6 +153,7 @@ class _OledScreen:
     """128x128 grayscale SSD1327 over I2C. Category shown white (grayscale)."""
     name = "OLED"
     ADDRS = (0x3D, 0x3C)
+    cloud_budget = 20      # scale-1 body, ~21 chars/line
 
     def __init__(self):
         import board
@@ -208,6 +209,7 @@ class _OledScreen:
 class _TftScreen:
     """320x240 color ILI9341 over SPI. Category drawn in its LED color."""
     name = "TFT"
+    cloud_budget = 15      # scale-3 body, ~17 chars/line -> wrap sooner
 
     def __init__(self, rotation=0):
         import board
@@ -228,15 +230,16 @@ class _TftScreen:
         _root(disp, self.group)
 
         # Big header: airport code (left) + category (right, in its LED color).
-        self._icao = label.Label(terminalio.FONT, text="", scale=4, color=WHITE,
+        self._icao = label.Label(terminalio.FONT, text="", scale=5, color=WHITE,
                                  anchor_point=(0.0, 0.0), anchored_position=(6, 4))
-        self._cat = label.Label(terminalio.FONT, text="", scale=4, color=WHITE,
+        self._cat = label.Label(terminalio.FONT, text="", scale=5, color=WHITE,
                                 anchor_point=(1.0, 0.0), anchored_position=(316, 4))
         self.group.append(self._icao)
         self.group.append(self._cat)
-        self._body = [label.Label(terminalio.FONT, text="", scale=2, color=WHITE,
-                                  anchor_point=(0.0, 0.0), anchored_position=(6, 50 + i * 21))
-                      for i in range(9)]
+        # Body at scale 3 -> ~6 lines fit below the taller header.
+        self._body = [label.Label(terminalio.FONT, text="", scale=3, color=WHITE,
+                                  anchor_point=(0.0, 0.0), anchored_position=(6, 66 + i * 29))
+                      for i in range(6)]
         for lbl in self._body:
             self.group.append(lbl)
 
@@ -303,7 +306,8 @@ class MetarDisplay:
         self._last = now
         sid = self._airports[self._idx]
         self._idx = (self._idx + 1) % len(self._airports)
-        icao, cat, body = format_lines(sid, (conditions or {}).get(sid))
+        budget = getattr(self._screen, "cloud_budget", 20)
+        icao, cat, body = format_lines(sid, (conditions or {}).get(sid), budget)
         self._screen.update(icao, cat, cat_color(cat), body)
 
 
