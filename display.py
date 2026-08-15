@@ -209,7 +209,7 @@ class _TftScreen:
     """320x240 color ILI9341 over SPI. Category drawn in its LED color."""
     name = "TFT"
 
-    def __init__(self, rotation=90):
+    def __init__(self, rotation=0):
         import board
         import displayio
         import terminalio
@@ -271,7 +271,7 @@ def _make_screen(kind, rotation):
 
 
 class MetarDisplay:
-    def __init__(self, rotation_secs=5.0, kind="auto", rotation=90):
+    def __init__(self, rotation_secs=5.0, kind="auto", rotation=0):
         self.rotation_secs = rotation_secs
         self.ok = False
         self._airports = []

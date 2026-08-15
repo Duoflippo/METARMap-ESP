@@ -144,7 +144,7 @@ def main():
             disp = displaymod.MetarDisplay(
                 rotation_secs=CONFIG.get("display_rotation_secs", 5),
                 kind=CONFIG.get("display_type", "auto"),
-                rotation=CONFIG.get("display_rotation", 90),
+                rotation=CONFIG.get("display_rotation", 0),   # 0/180 landscape
             )
             disp.set_airports(CONFIG.get("display_airports") or AIRPORTS)
         except Exception as e:

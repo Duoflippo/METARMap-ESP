@@ -1,5 +1,5 @@
 {
-  "version": "2.15.2",
+  "version": "2.15.3",
   "files": [
     {
       "path": "boot.py",
@@ -8,8 +8,8 @@
     },
     {
       "path": "code.py",
-      "size": 8471,
-      "sha256": "2f1301162fd6bcf262c57568176f217c4f8bfc4d252b4e010950b5c3daf8e30a"
+      "size": 8490,
+      "sha256": "2d160832c80611e6fefe07ae2ecb798952b75977ad85aee506eedb719c7b2a9a"
     },
     {
       "path": "metar_source.py",
@@ -38,13 +38,13 @@
     },
     {
       "path": "webui.py",
-      "size": 14253,
-      "sha256": "184ecbbbcd2b74c46977ddd58392662a53e206f8512b4da83ea3df352a2a980e"
+      "size": 14317,
+      "sha256": "b6b54c0d8dd14d49423afa219e09b8e104d5f4626701ffbcedc40bcf0a2754fb"
     },
     {
       "path": "display.py",
-      "size": 11575,
-      "sha256": "4d752d9983be5c856f916d31b6755d8940e2d5d0cbc2c3cef6b561b8243ad2bb"
+      "size": 11573,
+      "sha256": "44911e8392bece67751deae44b4dfd011b12e2941d7c5ec487c0a46f963ee9a3"
     }
   ]
 }

@@ -32,7 +32,7 @@ DEFAULTS_EXTRA = {
     "display_rotation_secs": 5,
     "display_airports": [],
     "display_type": "auto",
-    "display_rotation": 90,
+    "display_rotation": 0,     # 0/180 = landscape for ILI9341 (320x240); 90/270 = portrait
 }
 
 # The form layout. Each field: (key, label, type). type drives render + parse.
