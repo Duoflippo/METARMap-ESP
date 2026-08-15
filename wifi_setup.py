@@ -96,9 +96,11 @@ def start_provisioning(config, pixels=None, config_path="config.json"):
         password = form.get("password", "")
         config["wifiSsid"] = ssid
         config["wifiPassword"] = password
-        _save_config(config, config_path)
-        _state["reset_at"] = time.monotonic() + 2.5   # let the response flush first
-        return Response(request, _saved_html(ssid), content_type="text/html")
+        if _save_config(config, config_path):
+            _state["reset_at"] = time.monotonic() + 2.5   # let the response flush first
+            return Response(request, _saved_html(ssid), content_type="text/html")
+        # Save failed — flash is locked because the board is tethered to a computer.
+        return Response(request, _locked_html(), content_type="text/html")
 
     server.start(AP_IP, port=80)   # port 80 so plain http://192.168.4.1 works
 
@@ -154,20 +156,23 @@ def _write_config(config, path):
 
 
 def _save_config(config, path):
+    """Return True if saved. Flash is read-only to CircuitPython unless boot.py
+    remounted it (a power-on/hard reset). If reached via a soft reload we try to
+    force it writable, but that RAISES (RuntimeError) while a computer holds the
+    USB drive — in which case saving is impossible until a normal power-on boot."""
     try:
         _write_config(config, path)
-        return
+        return True
     except OSError:
         pass
-    # The flash is read-only to CircuitPython unless boot.py remounted it (which
-    # only happens on a power-on/hard reset). If we reached provisioning via a
-    # soft reload, force it writable and retry so the save always sticks.
     try:
         import storage
         storage.remount("/", readonly=False)
         _write_config(config, path)
-    except OSError as e:
-        print("wifi_setup: could NOT save config even after remount:", e)
+        return True
+    except Exception as e:
+        print("wifi_setup: could NOT save config (flash locked by USB host?):", e)
+        return False
 
 
 def _urldecode(s):
@@ -229,4 +234,16 @@ def _saved_html(ssid):
         "</head><body><h1>Saved</h1><p>Connecting to <b>" + ssid + "</b> and restarting."
         " If it doesn't join, the <b>METARMap-Setup</b> network will reappear so you"
         " can try again.</p></body></html>"
+    )
+
+
+def _locked_html():
+    return (
+        "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' "
+        "content='width=device-width,initial-scale=1'><title>Can't save</title>"
+        "<style>body{font-family:sans-serif;max-width:420px;margin:2em auto;padding:0 1em}</style>"
+        "</head><body><h1>Couldn't save</h1><p>The board's storage is locked because "
+        "it's plugged into a <b>computer</b>. Unplug it from the computer and power it "
+        "from a <b>USB wall charger or battery</b> (or press its RST button), then "
+        "reconnect to <b>METARMap-Setup</b> and try again.</p></body></html>"
     )
