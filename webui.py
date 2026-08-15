@@ -14,6 +14,7 @@ import render
 DEFAULTS_EXTRA = {
     "airports": ["KSEA", "KJFK", "KORD"],
     "ledCount": 50,
+    "ledOrder": "GRB",
     "refreshMinutes": 5,
     "ledBrightness": 0.5,
     "ledBrightnessDim": 0.1,
@@ -39,6 +40,7 @@ SCHEMA = [
     ("Airports & refresh", [
         ("airports", "Airports (one ICAO per line; NULL = gap LED)", "airports"),
         ("ledCount", "Total LED count", "int"),
+        ("ledOrder", "LED color order (GRB=WS2812B/SK6812, GRBW=RGBW)", "text"),
         ("refreshMinutes", "Weather refresh interval (minutes)", "int"),
     ]),
     ("Weather effects", [

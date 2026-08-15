@@ -1,0 +1,14 @@
+# CircuitPython libraries for METARMap-ESP (QT Py ESP32-S3, #5700)
+# Install with: circup install -r requirements.txt   (run while board is plugged in)
+neopixel
+adafruit_requests
+adafruit_connection_manager
+adafruit_httpserver
+adafruit_ntp
+adafruit_hashlib
+
+# Optional — only needed if an OLED (STEMMA QT) display is attached.
+# Uncomment the ones matching display_type in config.json, or install both.
+# adafruit_ssd1327
+# adafruit_display_text
+# adafruit_ili9341

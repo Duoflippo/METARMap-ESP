@@ -30,6 +30,9 @@ AUTO_UPDATE    = CONFIG.get("autoUpdate", True)
 UPDATE_HOUR    = CONFIG.get("autoUpdateHour", 3)   # local hour to check for OTA
 LED_COUNT      = CONFIG.get("ledCount", 50)
 LED_BRIGHTNESS = CONFIG.get("ledBrightness", 0.5)  # 0.0-1.0 (day/night dimming: TODO)
+# Color order: GRB works for WS2812B and SK6812 (RGB). Use GRBW for RGBW strips,
+# or RGB for the odd WS28xx that wants it. neopixel infers 3 vs 4 bytes from length.
+LED_ORDER      = (CONFIG.get("ledOrder", "GRB") or "GRB").upper()
 
 
 def connect_wifi(pixels):
@@ -89,7 +92,7 @@ def make_pixels():
     return neopixel.NeoPixel(
         board.A3, LED_COUNT,
         brightness=LED_BRIGHTNESS,
-        pixel_order=neopixel.GRB,   # SK6812 RGB
+        pixel_order=LED_ORDER,      # GRB for WS2812B / SK6812 RGB; GRBW for RGBW
         auto_write=False,
     )
 
