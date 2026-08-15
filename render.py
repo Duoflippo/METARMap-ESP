@@ -100,7 +100,10 @@ class Renderer:
         """Compute every pixel for the current instant and push to the strip.
         Call this ~10-15x/second so fades and twinkles look smooth."""
         t = time.monotonic()
+        n = len(self.pixels)
         for i, code in enumerate(self.airports):
+            if i >= n:
+                break   # more airports than LEDs — ignore extras (raise LED count)
             if code == "NULL":
                 self.pixels[i] = CLEAR
                 continue

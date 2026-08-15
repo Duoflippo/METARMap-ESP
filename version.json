@@ -1,5 +1,5 @@
 {
-  "version": "2.15.1",
+  "version": "2.15.2",
   "files": [
     {
       "path": "boot.py",
@@ -23,8 +23,8 @@
     },
     {
       "path": "render.py",
-      "size": 8043,
-      "sha256": "cf397b83db2dcebfa4505b8cc97d3935ab6d326b836da8c3c4f76cdd084194a7"
+      "size": 8181,
+      "sha256": "ad0be23ddd7bc717db0414bfac5b8bf4f7b3fa0cbd50e5a1d8a7a54a9f92061d"
     },
     {
       "path": "wifi_setup.py",
