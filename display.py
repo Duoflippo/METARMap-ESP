@@ -129,7 +129,13 @@ def format_lines(sid, c, cloud_budget=20):
     vis = c.get("visibility")
     body.append(("Vis %gSM" % vis) if vis is not None else "Vis ?")
 
-    body.extend(_cloud_lines(c.get("clouds") or [], cloud_budget))
+    # Only the two LOWEST cloud layers (includes the ceiling) so present weather
+    # has room; on a full screen the obs-time line drops before the weather does.
+    clouds = c.get("clouds") or []
+    if clouds:
+        clouds = sorted(clouds,
+                        key=lambda lyr: lyr.get("base") if lyr.get("base") is not None else 99999)[:2]
+    body.extend(_cloud_lines(clouds, cloud_budget))
 
     t = c.get("tempC")
     d = c.get("dewpointC")
