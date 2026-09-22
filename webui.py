@@ -120,13 +120,14 @@ class ConfigUI:
 
         @server.route("/wifi", POST)
         def _wifi(request):
-            # Forget stored creds so the next boot re-enters the setup portal.
-            self.config["wifiSsid"] = ""
-            self.config["wifiPassword"] = ""
+            # Force the setup portal on next boot to ADD a network. Saved networks
+            # are kept (the map still connects to any of them when in range).
+            self.config["forceSetup"] = True
             self._save()
             self._pending = ("reboot", time.monotonic() + 2)
-            return Response(request, _msg("Changing WiFi",
-                            "Rebooting into the METARMap-Setup portal."),
+            return Response(request, _msg("Add / change WiFi",
+                            "Rebooting into the METARMap-Setup portal so you can add a "
+                            "WiFi network. Your other saved networks are kept."),
                             content_type="text/html")
 
         @server.route("/reboot", POST)
@@ -236,6 +237,17 @@ class ConfigUI:
         except (OSError, ValueError):
             return "?"
 
+    def _saved_ssids(self):
+        out = []
+        for n in (self.config.get("wifiNetworks") or []):
+            s = n.get("ssid")
+            if s and s not in out:
+                out.append(s)
+        ls = self.config.get("wifiSsid")
+        if ls and ls not in out:
+            out.append(ls)
+        return out
+
     def _field_html(self, key, label, typ):
         val = self.current(key)
         if typ == "bool":
@@ -273,6 +285,7 @@ class ConfigUI:
             ".save{width:100%;background:#1663a6;color:#fff;border:0;border-radius:6px;"
             "padding:.9em;font-size:1.05em}</style></head><body>",
             "<h1>METARMap</h1><p style='color:#666'>firmware v%s</p>" % self._version(),
+            "<p style='color:#666'>Saved WiFi: %s</p>" % (", ".join(self._saved_ssids()) or "none"),
             "<form action='/save' method='post'>",
         ]
         for title, fields in SCHEMA:
@@ -286,7 +299,7 @@ class ConfigUI:
             "<div class='actions'>"
             "<form action='/update' method='post'><button>Check for updates</button></form>"
             "<form action='/reboot' method='post'><button>Reboot</button></form>"
-            "<form action='/wifi' method='post'><button>Change WiFi</button></form>"
+            "<form action='/wifi' method='post'><button>Add / change WiFi</button></form>"
             "<form action='/maint' method='post'><button>USB maintenance</button></form>"
             "</div>")
         parts.append("</body></html>")

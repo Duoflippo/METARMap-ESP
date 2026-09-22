@@ -1,0 +1,1 @@
+"C:\Users\msh41\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\Scripts\circup.exe" install -r tools/requirements.txt
