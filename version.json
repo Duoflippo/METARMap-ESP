@@ -1,5 +1,5 @@
 {
-  "version": "2.16.0",
+  "version": "2.17.0",
   "files": [
     {
       "path": "boot.py",
@@ -38,8 +38,8 @@
     },
     {
       "path": "webui.py",
-      "size": 14885,
-      "sha256": "f053be5faafc5d2cb1e25f67fccfb77707dc112147518a92403ef80e854c92c3"
+      "size": 16173,
+      "sha256": "4544bdf156b134a660aeaa5bfc72db329cb337f7126ec63ebc9fd99a3fd50563"
     },
     {
       "path": "display.py",

@@ -111,6 +111,21 @@ class ConfigUI:
             return Response(request, _msg("Saved", "Settings applied.", back=True),
                             content_type="text/html")
 
+        @server.route("/addnet", POST)
+        def _addnet(request):
+            form = _parse_form(request.body)
+            ssid = (form.get("ssid") or "").strip()
+            password = form.get("password", "")
+            if not ssid:
+                return Response(request, _msg("No name", "Enter a network name.", back=True),
+                                content_type="text/html")
+            import wifi_setup
+            wifi_setup._add_network(self.config, ssid, password)
+            self._save()
+            return Response(request, _msg("Network added",
+                            "Saved '%s'. The map will connect to it automatically whenever "
+                            "it's in range." % ssid, back=True), content_type="text/html")
+
         @server.route("/update", POST)
         def _update(request):
             self._pending = ("update", time.monotonic() + 2)
@@ -294,6 +309,14 @@ class ConfigUI:
                 parts.append(self._field_html(key, label, typ))
             parts.append("</fieldset>")
         parts.append("<button class='save' type='submit'>Save settings</button></form>")
+        # Add a WiFi network directly (e.g. pre-load the display location's network,
+        # even when it's out of range now). Accumulates with the saved networks.
+        parts.append(
+            "<form action='/addnet' method='post'><fieldset>"
+            "<legend>Add a WiFi network</legend>"
+            "<label>Network name (SSID)</label><input name='ssid' type='text'>"
+            "<label>Password</label><input name='password' type='password'>"
+            "<button type='submit'>Add network</button></fieldset></form>")
         # Separate action forms (each POSTs its own endpoint).
         parts.append(
             "<div class='actions'>"
